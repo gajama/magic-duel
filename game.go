@@ -18,10 +18,16 @@ const (
 	screenHeight = tileSize * n
 )
 
-var bgTiles *ebiten.Image
+var (
+	bgTiles    *ebiten.Image
+	kingSprite *ebiten.Image
+)
 
 //go:embed resources/game-bg.png
 var b []byte
+
+//go:embed resources/king.png
+var k []byte
 
 func init() {
 	var err error
@@ -30,11 +36,45 @@ func init() {
 		log.Fatal(err)
 	}
 	bgTiles = ebiten.NewImageFromImage(img)
+
+	img, _, err = image.Decode(bytes.NewReader(k))
+	if err != nil {
+		log.Fatal(err)
+	}
+	kingSprite = ebiten.NewImageFromImage(img)
 }
 
-type Game struct{}
+type char struct {
+	x int
+	y int
+}
+
+func (c *char) draw(screen *ebiten.Image) {
+	op := &ebiten.DrawImageOptions{}
+	op.GeoM.Scale(1, 1)
+	op.GeoM.Translate(float64(c.x)/tileSize, float64(c.y)/tileSize)
+	screen.DrawImage(kingSprite, op)
+}
+
+type Game struct {
+	king *char
+}
 
 func (g *Game) Update() error {
+	if g.king == nil {
+		g.king = &char{x: tileSize, y: tileSize}
+	}
+
+	if ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
+		g.king.y -= tileSize
+	} else if ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
+		g.king.y += tileSize
+	} else if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
+		g.king.x += tileSize
+	} else if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
+		g.king.x -= tileSize
+	}
+
 	return nil
 }
 
@@ -55,11 +95,13 @@ func (g *Game) Draw(screen *ebiten.Image) {
 
 		}
 	}
+
+	g.king.draw(screen)
 }
 
 func main() {
 	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Tiling test")
+	ebiten.SetWindowTitle("Sprite test")
 	if err := ebiten.RunGame(&Game{}); err != nil {
 		log.Fatal(err)
 	}
