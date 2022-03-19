@@ -13,152 +13,96 @@ import (
 )
 
 const (
-	tileSize     = 32
-	tileSheetX   = 2
-	tilesH       = 12
-	tilesW       = 12
-	screenWidth  = tileSize * tilesW
-	screenHeight = tileSize * tilesH
+	screenWidth  = 384
+	screenHeight = 384
+)
+
+const (
+	tileSize = 32
+	tileXNum = 2
+)
+
+const (
+	widthInTiles  = screenWidth / tileSize
+	heightInTiles = screenHeight / tileSize
+)
+
+const (
+	numLayers = 1
 )
 
 var (
-	bgTiles    *ebiten.Image
-	kingSprite *ebiten.Image
+	tilesImage *ebiten.Image
 )
 
 //go:embed resources/game-bg.png
 var b []byte
 
-//go:embed resources/king.png
-var k []byte
-
 func init() {
-	var err error
 	img, _, err := image.Decode(bytes.NewReader(b))
 	if err != nil {
 		log.Fatal(err)
 	}
-	bgTiles = ebiten.NewImageFromImage(img)
-
-	img, _, err = image.Decode(bytes.NewReader(k))
-	if err != nil {
-		log.Fatal(err)
-	}
-	kingSprite = ebiten.NewImageFromImage(img)
-}
-
-type MapTile struct {
-	PX    int
-	PY    int
-	Block bool
-	Image image.Rectangle
-}
-
-type char struct {
-	x  int
-	y  int
-	vx int
-	vy int
-}
-
-func (c *char) draw(screen *ebiten.Image) {
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Scale(1, 1)
-	op.GeoM.Translate(float64(c.x)/tileSize, float64(c.y)/tileSize)
-	screen.DrawImage(kingSprite, op)
+	tilesImage = ebiten.NewImageFromImage(img)
 }
 
 type Game struct {
-	king *char
+	layers [][widthInTiles * heightInTiles]tile
+}
+
+type tile struct {
+	ind int
+}
+
+func (g *Game) createLayers() {
+	for n := 0; n < numLayers; n++ {
+		var a [widthInTiles * heightInTiles]tile
+		g.layers = append(g.layers, a)
+	}
+	// Checkerboard effect
+	for n := 0; n < screenWidth/tileSize*screenHeight/tileSize; n++ {
+		if n/widthInTiles%2 == 0 {
+			g.layers[0][n] = tile{
+				ind: n % 2,
+			}
+			continue
+		}
+		g.layers[0][n] = tile{
+			ind: -((n % 2) - 1), // swap 0 and 1
+		}
+	}
 }
 
 func (g *Game) Update() error {
-
-	if g.king == nil {
-		g.king = &char{x: 0, y: 0}
-	}
-
-	g.checkMove()
-	g.king.x += g.king.vx
-	g.king.vx = 0
-	g.king.y += g.king.vy
-	g.king.vy = 0
 	return nil
 }
 
-func (g *Game) checkMove() {
-	switch {
-	case ebiten.IsKeyPressed(ebiten.KeyArrowUp):
-		if inBounds(g.king.y - tileSize) {
-			g.king.vy -= tileSize
-		}
-	case ebiten.IsKeyPressed(ebiten.KeyArrowDown):
-		if inBounds(g.king.y + tileSize) {
-			g.king.vy += tileSize
-		}
-	case ebiten.IsKeyPressed(ebiten.KeyArrowRight):
-		if inBounds(g.king.x + tileSize) {
-			g.king.vx += tileSize
-		}
-	case ebiten.IsKeyPressed(ebiten.KeyArrowLeft):
-		if inBounds(g.king.x - tileSize) {
-			g.king.vx -= tileSize
-		}
+func (g *Game) Draw(screen *ebiten.Image) {
+	const xNum = screenWidth / tileSize
+	for _, l := range g.layers {
+		for i, t := range l {
+			op := &ebiten.DrawImageOptions{}
+			op.GeoM.Translate(float64((i%xNum)*tileSize), float64((i/xNum)*tileSize))
 
+			sx := (t.ind % tileXNum) * tileSize
+			sy := (t.ind / tileXNum) * tileSize
+			screen.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
+		}
 	}
-}
 
-func inBounds(v int) bool {
-	if v < 0 || v > tileSize*(tilesH-1) {
-		return true
-	}
-	return true
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
 
-func makeLevel() [tilesW * tilesH]MapTile {
-	var tiles [tilesW * tilesH]MapTile
-	grass := image.Rect(0, 0, tileSize, tileSize)
-
-	dirt := image.Rect(tileSize, 0, tileSize+tileSize, tileSize)
-
-	for i := 0; i <= tilesW; i++ {
-		for j := 0; j <= tilesH; j++ {
-
-			if (i+j)%2 == 0 {
-				tiles[i*tilesH+j] = MapTile{
-					PX:    i * tileSize,
-					PY:    j * tileSize,
-					Block: false,
-					Image: grass,
-				}
-				continue
-			}
-			tiles[i*tilesH+j] = MapTile{
-				PX:    i * tileSize,
-				PY:    j * tileSize,
-				Block: false,
-				Image: dirt,
-			}
-		}
-	}
-	return tiles
-}
-
-func (g *Game) Draw(screen *ebiten.Image) {
-	const xNum = screenWidth / tileSize
-
-	g.king.draw(screen)
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("x: %v, y:%v", g.king.x, g.king.y))
-}
-
 func main() {
-	ebiten.SetWindowSize(screenWidth, screenHeight)
-	ebiten.SetWindowTitle("Sprite test")
-	if err := ebiten.RunGame(&Game{}); err != nil {
+	g := &Game{}
+	g.createLayers()
+	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
+	ebiten.SetWindowTitle("Tiles (Ebiten Demo)")
+	if err := ebiten.RunGame(g); err != nil {
 		log.Fatal(err)
 	}
 }
