@@ -3,19 +3,22 @@ package main
 import (
 	"bytes"
 	_ "embed"
+	"fmt"
 	"image"
 	_ "image/png"
 	"log"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 )
 
 const (
 	tileSize     = 32
-	tileXNum     = 2
-	n            = 12
-	screenWidth  = tileSize * n
-	screenHeight = tileSize * n
+	tileSheetX   = 2
+	tilesH       = 12
+	tilesW       = 12
+	screenWidth  = tileSize * tilesW
+	screenHeight = tileSize * tilesH
 )
 
 var (
@@ -44,9 +47,18 @@ func init() {
 	kingSprite = ebiten.NewImageFromImage(img)
 }
 
+type MapTile struct {
+	PX    int
+	PY    int
+	Block bool
+	Image image.Rectangle
+}
+
 type char struct {
-	x int
-	y int
+	x  int
+	y  int
+	vx int
+	vy int
 }
 
 func (c *char) draw(screen *ebiten.Image) {
@@ -61,42 +73,86 @@ type Game struct {
 }
 
 func (g *Game) Update() error {
+
 	if g.king == nil {
-		g.king = &char{x: tileSize, y: tileSize}
+		g.king = &char{x: 0, y: 0}
 	}
 
-	if ebiten.IsKeyPressed(ebiten.KeyArrowUp) {
-		g.king.y -= tileSize
-	} else if ebiten.IsKeyPressed(ebiten.KeyArrowDown) {
-		g.king.y += tileSize
-	} else if ebiten.IsKeyPressed(ebiten.KeyArrowRight) {
-		g.king.x += tileSize
-	} else if ebiten.IsKeyPressed(ebiten.KeyArrowLeft) {
-		g.king.x -= tileSize
-	}
-
+	g.checkMove()
+	g.king.x += g.king.vx
+	g.king.vx = 0
+	g.king.y += g.king.vy
+	g.king.vy = 0
 	return nil
+}
+
+func (g *Game) checkMove() {
+	switch {
+	case ebiten.IsKeyPressed(ebiten.KeyArrowUp):
+		if inBounds(g.king.y - tileSize) {
+			g.king.vy -= tileSize
+		}
+	case ebiten.IsKeyPressed(ebiten.KeyArrowDown):
+		if inBounds(g.king.y + tileSize) {
+			g.king.vy += tileSize
+		}
+	case ebiten.IsKeyPressed(ebiten.KeyArrowRight):
+		if inBounds(g.king.x + tileSize) {
+			g.king.vx += tileSize
+		}
+	case ebiten.IsKeyPressed(ebiten.KeyArrowLeft):
+		if inBounds(g.king.x - tileSize) {
+			g.king.vx -= tileSize
+		}
+
+	}
+}
+
+func inBounds(v int) bool {
+	if v < 0 || v > tileSize*(tilesH-1) {
+		return true
+	}
+	return true
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return screenWidth, screenHeight
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
-	const xNum = screenWidth / tileSize
-	for i := 0; i <= xNum; i++ {
-		for j := 0; j <= xNum; j++ {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64(i*tileSize), float64(j*tileSize))
+func makeLevel() [tilesW * tilesH]MapTile {
+	var tiles [tilesW * tilesH]MapTile
+	grass := image.Rect(0, 0, tileSize, tileSize)
 
-			sx := (i + 1*j) % 2 * tileSize
-			sy := 0
-			screen.DrawImage(bgTiles.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
+	dirt := image.Rect(tileSize, 0, tileSize+tileSize, tileSize)
 
+	for i := 0; i <= tilesW; i++ {
+		for j := 0; j <= tilesH; j++ {
+
+			if (i+j)%2 == 0 {
+				tiles[i*tilesH+j] = MapTile{
+					PX:    i * tileSize,
+					PY:    j * tileSize,
+					Block: false,
+					Image: grass,
+				}
+				continue
+			}
+			tiles[i*tilesH+j] = MapTile{
+				PX:    i * tileSize,
+				PY:    j * tileSize,
+				Block: false,
+				Image: dirt,
+			}
 		}
 	}
+	return tiles
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	const xNum = screenWidth / tileSize
 
 	g.king.draw(screen)
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("x: %v, y:%v", g.king.x, g.king.y))
 }
 
 func main() {
