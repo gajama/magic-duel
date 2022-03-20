@@ -61,7 +61,7 @@ func init() {
 
 type Game struct {
 	layers     [][widthInTiles * heightInTiles]tile
-	characters map[int]*Char
+	characters map[string]*Char
 	wrap       bool
 }
 
@@ -96,12 +96,12 @@ func (g *Game) reset() {
 	for n := 0; n < widthInTiles*heightInTiles; n++ {
 		g.layers[0][n].ind = 1
 	}
-	g.characters[1].xPos = 0
-	g.characters[1].yPos = 0
+	g.characters["king"].xPos = 0
+	g.characters["king"].yPos = 0
 }
 
 func (g *Game) Update() error {
-	king := g.characters[1]
+	king := g.characters["king"]
 
 	x, y := king.xPos/tileSize, king.yPos/tileSize
 
@@ -183,7 +183,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	king := g.characters[1]
+	king := g.characters["king"]
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM.Translate(float64(king.xPos), float64(king.yPos))
 	screen.DrawImage(king.img, op)
@@ -196,13 +196,12 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func main() {
-	ebiten.SetMaxTPS(60)
 	g := &Game{}
 	g.wrap = false
 	g.createLayers()
-	g.characters = make(map[int]*Char)
+	g.characters = make(map[string]*Char)
 	king := &Char{"King", g, 0, 0, kingImage, false, 0}
-	g.characters[1] = king
+	g.characters["king"] = king
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
 	ebiten.SetWindowTitle("Game")
