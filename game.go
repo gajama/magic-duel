@@ -66,11 +66,13 @@ type Game struct {
 }
 
 type Char struct {
-	name string
-	game *Game
-	xPos int
-	yPos int
-	img  *ebiten.Image
+	name  string
+	game  *Game
+	xPos  int
+	yPos  int
+	img   *ebiten.Image
+	moved bool
+	score int
 }
 
 type axis bool
@@ -83,23 +85,25 @@ func (g *Game) createLayers() {
 		var a [widthInTiles * heightInTiles]tile
 		g.layers = append(g.layers, a)
 	}
-	// Checkerboard effect
 	for n := 0; n < screenWidth/tileSize*screenHeight/tileSize; n++ {
-		if n/widthInTiles%2 == 0 {
-			g.layers[0][n] = tile{
-				ind: n % 2,
-			}
-			continue
-		}
 		g.layers[0][n] = tile{
-			ind: -((n % 2) - 1), // swap 0 and 1
+			ind: 1,
 		}
 	}
 }
 
-func (g *Game) Update() error {
+func (g *Game) reset() {
+	for n := 0; n < widthInTiles*heightInTiles; n++ {
+		g.layers[0][n].ind = 1
+	}
+	g.characters[1].xPos = 0
+	g.characters[1].yPos = 0
+}
 
+func (g *Game) Update() error {
 	king := g.characters[1]
+
+	x, y := king.xPos/tileSize, king.yPos/tileSize
 
 	switch {
 	case keyDelayRepeat(ebiten.KeyArrowUp):
@@ -119,7 +123,15 @@ func (g *Game) Update() error {
 		king.yPos = 0
 	case inpututil.IsKeyJustPressed(ebiten.KeyW):
 		g.wrap = !g.wrap
+	case inpututil.IsKeyJustPressed(ebiten.KeyR):
+		g.reset()
 	}
+
+	if king.moved && g.layers[0][y*widthInTiles+x].ind == 1 {
+		g.layers[0][y*widthInTiles+x].ind = 0
+		king.score += 1
+	}
+	king.moved = false
 
 	return nil
 }
@@ -134,6 +146,7 @@ func (c *Char) outOfBounds(a axis, move int) int {
 
 	if pos+move < 0 {
 		if c.game.wrap {
+			c.moved = true
 			return max
 		}
 		return 0
@@ -141,10 +154,12 @@ func (c *Char) outOfBounds(a axis, move int) int {
 
 	if pos+move > max {
 		if c.game.wrap {
+			c.moved = true
 			return -max
 		}
 		return 0
 	}
+	c.moved = true
 	return move
 }
 
@@ -173,7 +188,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 	op.GeoM.Translate(float64(king.xPos), float64(king.yPos))
 	screen.DrawImage(king.img, op)
 
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("TPS: %0.2f", ebiten.CurrentTPS()))
+	ebitenutil.DebugPrint(screen, fmt.Sprintf("Score: %v", king.score))
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -186,7 +201,7 @@ func main() {
 	g.wrap = false
 	g.createLayers()
 	g.characters = make(map[int]*Char)
-	king := &Char{"King", g, 0, 0, kingImage}
+	king := &Char{"King", g, 0, 0, kingImage, false, 0}
 	g.characters[1] = king
 
 	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
