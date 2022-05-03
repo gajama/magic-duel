@@ -180,6 +180,8 @@ func main() {
 
 	g.world.AddEntity().With(
 		game.Space{XPos: 2, YPos: 2},
+	).With(
+		game.Drawable{Image: config.KingImage},
 	)
 
 	log.Print(g.world.ListEntities())
