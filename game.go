@@ -3,39 +3,15 @@ package main
 import (
 	"bytes"
 	_ "embed"
-	"fmt"
 	"image"
 	_ "image/png"
 	"log"
-	"time"
 
 	"github.com/hajimehoshi/ebiten/v2"
-	"github.com/hajimehoshi/ebiten/v2/ebitenutil"
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
-)
 
-const (
-	screenWidth  = 384
-	screenHeight = 384
-)
-
-const (
-	tileSize = 32
-	tileXNum = 2
-)
-
-const (
-	widthInTiles  = screenWidth / tileSize
-	heightInTiles = screenHeight / tileSize
-)
-
-const (
-	numLayers = 1
-)
-
-var (
-	tilesImage *ebiten.Image
-	kingImage  *ebiten.Image
+	"github.com/gavmassingham/magic-duel/internal/config"
+	"github.com/gavmassingham/magic-duel/pkg/game"
 )
 
 //go:embed resources/game-bg.png
@@ -49,27 +25,26 @@ func init() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	tilesImage = ebiten.NewImageFromImage(img)
+	config.TilesImage = ebiten.NewImageFromImage(img)
 
 	img, _, err = image.Decode(bytes.NewReader(k))
 	if err != nil {
 		log.Fatal(err)
 	}
-	kingImage = ebiten.NewImageFromImage(img)
+	config.KingImage = ebiten.NewImageFromImage(img)
 
 }
 
 type Game struct {
-	layers     [][widthInTiles * heightInTiles]tile
+	layers     [][config.WidthInTiles * config.HeightInTiles]tile
 	characters map[string]*Char
+	world      *game.World
 	wrap       bool
 }
 
 type Char struct {
 	name  string
 	game  *Game
-	xPos  int
-	yPos  int
 	img   *ebiten.Image
 	moved bool
 	score int
@@ -77,15 +52,18 @@ type Char struct {
 
 type axis bool
 type tile struct {
-	ind int
+	ind  int
+	lenX int
+	lenY int
+	name string
 }
 
 func (g *Game) createLayers() {
-	for n := 0; n < numLayers; n++ {
-		var a [widthInTiles * heightInTiles]tile
+	for n := 0; n < config.NumLayers; n++ {
+		var a [config.WidthInTiles * config.HeightInTiles]tile
 		g.layers = append(g.layers, a)
 	}
-	for n := 0; n < screenWidth/tileSize*screenHeight/tileSize; n++ {
+	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
 		g.layers[0][n] = tile{
 			ind: 1,
 		}
@@ -93,31 +71,29 @@ func (g *Game) createLayers() {
 }
 
 func (g *Game) reset() {
-	for n := 0; n < widthInTiles*heightInTiles; n++ {
+	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
 		g.layers[0][n].ind = 1
 	}
-	g.characters["king"].xPos = 0
-	g.characters["king"].yPos = 0
 }
 
 func (g *Game) Update() error {
-	king := g.characters["king"]
+	/* king := g.characters["king"]
 
-	x, y := king.xPos/tileSize, king.yPos/tileSize
+	x, y := king.xPos/config.TileSize, king.yPos/config.TileSize
 
 	switch {
 	case keyDelayRepeat(ebiten.KeyArrowUp):
 		time.Sleep(100 * time.Millisecond)
-		king.yPos += king.outOfBounds(false, -tileSize)
+		king.yPos += king.outOfBounds(false, -config.TileSize)
 	case keyDelayRepeat(ebiten.KeyArrowDown):
 		time.Sleep(100 * time.Millisecond)
-		king.yPos += king.outOfBounds(false, tileSize)
+		king.yPos += king.outOfBounds(false, config.TileSize)
 	case keyDelayRepeat(ebiten.KeyArrowLeft):
 		time.Sleep(100 * time.Millisecond)
-		king.xPos += king.outOfBounds(true, -tileSize)
+		king.xPos += king.outOfBounds(true, -config.TileSize)
 	case keyDelayRepeat(ebiten.KeyArrowRight):
 		time.Sleep(100 * time.Millisecond)
-		king.xPos += king.outOfBounds(true, tileSize)
+		king.xPos += king.outOfBounds(true, config.TileSize)
 	case inpututil.IsKeyJustPressed(ebiten.KeyH):
 		king.xPos = 0
 		king.yPos = 0
@@ -127,39 +103,39 @@ func (g *Game) Update() error {
 		g.reset()
 	}
 
-	if king.moved && g.layers[0][y*widthInTiles+x].ind == 1 {
-		g.layers[0][y*widthInTiles+x].ind = 0
+	if king.moved && g.layers[0][y*config.WidthInTiles+x].ind == 1 {
+		g.layers[0][y*config.WidthInTiles+x].ind = 0
 		king.score += 1
 	}
-	king.moved = false
+	king.moved = false */
 
 	return nil
 }
 
 func (c *Char) outOfBounds(a axis, move int) int {
-	pos := c.yPos
-	max := tileSize * (heightInTiles - 1)
-	if a {
-		pos = c.xPos
-		max = tileSize * (widthInTiles - 1)
-	}
+	/* 	pos := c.yPos
+	   	max := config.TileSize * (config.HeightInTiles - 1)
+	   	if a {
+	   		pos = c.xPos
+	   		max = config.TileSize * (config.WidthInTiles - 1)
+	   	}
 
-	if pos+move < 0 {
-		if c.game.wrap {
-			c.moved = true
-			return max
-		}
-		return 0
-	}
+	   	if pos+move < 0 {
+	   		if c.game.wrap {
+	   			c.moved = true
+	   			return max
+	   		}
+	   		return 0
+	   	}
 
-	if pos+move > max {
-		if c.game.wrap {
-			c.moved = true
-			return -max
-		}
-		return 0
-	}
-	c.moved = true
+	   	if pos+move > max {
+	   		if c.game.wrap {
+	   			c.moved = true
+	   			return -max
+	   		}
+	   		return 0
+	   	}
+	   	c.moved = true */
 	return move
 }
 
@@ -171,41 +147,46 @@ func keyDelayRepeat(k ebiten.Key) bool {
 }
 
 func (g *Game) Draw(screen *ebiten.Image) {
-	const xNum = screenWidth / tileSize
+	const xNum = config.ScreenWidth / config.TileSize
 	for _, l := range g.layers {
 		for i, t := range l {
 			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64((i%xNum)*tileSize), float64((i/xNum)*tileSize))
+			op.GeoM.Translate(float64((i%xNum)*config.TileSize), float64((i/xNum)*config.TileSize))
 
-			sx := (t.ind % tileXNum) * tileSize
-			sy := (t.ind / tileXNum) * tileSize
-			screen.DrawImage(tilesImage.SubImage(image.Rect(sx, sy, sx+tileSize, sy+tileSize)).(*ebiten.Image), op)
+			sx := (t.ind % config.TileXNum) * config.TileSize
+			sy := (t.ind / config.TileXNum) * config.TileSize
+			screen.DrawImage(config.TilesImage.SubImage(image.Rect(sx, sy, sx+config.TileSize, sy+config.TileSize)).(*ebiten.Image), op)
 		}
 	}
+	/*
+		king := g.characters["king"]
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(float64(king.xPos), float64(king.yPos))
+		screen.DrawImage(king.img, op)
 
-	king := g.characters["king"]
-	op := &ebiten.DrawImageOptions{}
-	op.GeoM.Translate(float64(king.xPos), float64(king.yPos))
-	screen.DrawImage(king.img, op)
-
-	ebitenutil.DebugPrint(screen, fmt.Sprintf("Score: %v", king.score))
+		ebitenutil.DebugPrint(screen, fmt.Sprintf("Score: %v", king.score)) */
 }
 
 func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return screenWidth, screenHeight
+	return config.ScreenWidth, config.ScreenHeight
 }
 
 func main() {
 	g := &Game{}
-	g.wrap = false
-	g.createLayers()
-	g.characters = make(map[string]*Char)
-	king := &Char{"King", g, 0, 0, kingImage, false, 0}
-	g.characters["king"] = king
+	/* 	g.wrap = false
+	   	g.createLayers()
+	   	g.characters = make(map[string]*Char) */
+	g.world = game.MakeWorld()
 
-	ebiten.SetWindowSize(screenWidth*2, screenHeight*2)
-	ebiten.SetWindowTitle("Game")
-	if err := ebiten.RunGame(g); err != nil {
-		log.Fatal(err)
-	}
+	g.world.AddEntity().With(
+		game.Space{XPos: 2, YPos: 2},
+	)
+
+	log.Print(g.world.ListEntities())
+
+	/* 	ebiten.SetWindowSize(config.ScreenWidth*2, config.ScreenHeight*2)
+	   	ebiten.SetWindowTitle("Game")
+	   	if err := ebiten.RunGame(g); err != nil {
+	   		log.Fatal(err)
+	   	} */
 }
