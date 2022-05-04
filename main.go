@@ -11,6 +11,7 @@ import (
 	"github.com/hajimehoshi/ebiten/v2/inpututil"
 
 	"github.com/gavmassingham/magic-duel/internal/config"
+	"github.com/gavmassingham/magic-duel/pkg/ecs"
 	"github.com/gavmassingham/magic-duel/pkg/game"
 )
 
@@ -112,32 +113,32 @@ func (g *Game) Update() error {
 	return nil
 }
 
-func (c *Char) outOfBounds(a axis, move int) int {
-	/* 	pos := c.yPos
-	   	max := config.TileSize * (config.HeightInTiles - 1)
-	   	if a {
-	   		pos = c.xPos
-	   		max = config.TileSize * (config.WidthInTiles - 1)
-	   	}
+/* func (c *Char) outOfBounds(a axis, move int) int {
+	pos := c.yPos
+	max := config.TileSize * (config.HeightInTiles - 1)
+	if a {
+		pos = c.xPos
+		max = config.TileSize * (config.WidthInTiles - 1)
+	}
 
-	   	if pos+move < 0 {
-	   		if c.game.wrap {
-	   			c.moved = true
-	   			return max
-	   		}
-	   		return 0
-	   	}
+	if pos+move < 0 {
+		if c.game.wrap {
+			c.moved = true
+			return max
+		}
+		return 0
+	}
 
-	   	if pos+move > max {
-	   		if c.game.wrap {
-	   			c.moved = true
-	   			return -max
-	   		}
-	   		return 0
-	   	}
-	   	c.moved = true */
+	if pos+move > max {
+		if c.game.wrap {
+			c.moved = true
+			return -max
+		}
+		return 0
+	}
+	c.moved = true
 	return move
-}
+} */
 
 func keyDelayRepeat(k ebiten.Key) bool {
 	if ebiten.IsKeyPressed(k) && (inpututil.KeyPressDuration(k) < 2 || inpututil.KeyPressDuration(k) > 10) {
@@ -179,12 +180,14 @@ func main() {
 	g.world = game.MakeWorld()
 
 	g.world.AddEntity().With(
-		game.Space{XPos: 2, YPos: 2},
+		ecs.Space{XPos: 2, YPos: 2},
 	).With(
-		game.Drawable{Image: config.KingImage},
+		ecs.Drawable{Image: config.KingImage},
 	)
 
 	log.Print(g.world.ListEntities())
+
+	g.world.Entities.Render()
 
 	/* 	ebiten.SetWindowSize(config.ScreenWidth*2, config.ScreenHeight*2)
 	   	ebiten.SetWindowTitle("Game")

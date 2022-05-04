@@ -1,26 +1,9 @@
-package game
+package ecs
 
 import (
-	"fmt"
-	"strings"
-
 	_ "github.com/gavmassingham/magic-duel/internal/config"
 	"github.com/hajimehoshi/ebiten/v2"
 )
-
-type World struct {
-	Entities map[Entity][]Component
-	LastID   Entity
-}
-
-func MakeWorld() *World {
-	e := make(map[Entity][]Component)
-
-	return &World{
-		Entities: e,
-		LastID:   0,
-	}
-}
 
 type Entity uint64
 
@@ -50,7 +33,7 @@ type Transmit <-chan EventNotify
 type Receive chan<- EventNotify
 
 type Space struct {
-	XPos, YPos int
+	XPos, YPos, Zindex int
 }
 
 func (Space) Name() ComponentName {
@@ -91,35 +74,3 @@ const (
 	DRAWABLE_ID
 	C_MAX int = iota + 1
 )
-
-type EntityBuilder func(Entity, *World)
-
-func (w *World) With(comp Component) *World {
-	w.Entities[w.LastID][comp.ID()] = comp
-	return w
-}
-
-func (w *World) AddEntity() *World {
-	ID := Entity(w.LastID + 1)
-	w.Entities[ID] = make([]Component, C_MAX)
-	w.LastID = ID
-	return w
-}
-
-func (w *World) ListEntities() string {
-	var out strings.Builder
-	out.WriteString("\n\n")
-	out.WriteString("Entity ID | Components\n")
-	out.WriteString("----------|------------\n")
-	for entity, components := range w.Entities {
-		out.WriteString(fmt.Sprintf("#%08d | ", entity))
-		for _, c := range components {
-			if c != nil {
-				out.WriteString(fmt.Sprintf("%s [ID:%v] %#v; ", c.Name(), c.ID(), c))
-			}
-		}
-		out.WriteString("\n")
-	}
-
-	return out.String()
-}
