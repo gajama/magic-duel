@@ -1,19 +1,19 @@
 package ecs
 
 import (
-	_ "github.com/gavmassingham/magic-duel/internal/config"
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
 type Entity uint64
 
-type ComponentName string
+type ComponentLabel string
 
 type ComponentID uint
 
 type Component interface {
-	Name() ComponentName
+	Label() ComponentLabel
 	ID() ComponentID
+	New() Component
 }
 
 type Notifier interface {
@@ -32,45 +32,92 @@ type Transmit <-chan EventNotify
 
 type Receive chan<- EventNotify
 
-type Space struct {
+type Location struct {
 	XPos, YPos, Zindex int
 }
 
-func (Space) Name() ComponentName {
-	return "Space Component"
+func (Location) Label() ComponentLabel {
+	return "Locatable"
 }
 
-func (c Space) ID() ComponentID {
-	return SPACE_ID
+func (c Location) ID() ComponentID {
+	return LOCATION_ID
 }
 
-type Score struct {
-	Score int
+func (c Location) New() Component {
+	return c
 }
 
-func (Score) Name() ComponentName {
-	return "Score Component"
+type Counters struct {
+	Counters map[string]int64
 }
 
-func (c Score) ID() ComponentID {
-	return SCORE_ID
+func (Counters) Label() ComponentLabel {
+	return "Countable"
 }
 
-type Drawable struct {
+func (c Counters) ID() ComponentID {
+	return COUNTERS_ID
+}
+
+func (c Counters) New() Component {
+	c.Counters = make(map[string]int64)
+	return c
+}
+
+type Image struct {
 	Image *ebiten.Image
 }
 
-func (Drawable) Name() ComponentName {
-	return "Drawable Component"
+func (Image) Label() ComponentLabel {
+	return "Drawable"
 }
 
-func (c Drawable) ID() ComponentID {
-	return DRAWABLE_ID
+func (c Image) ID() ComponentID {
+	return IMAGE_ID
+}
+
+func (c Image) New() Component {
+	return c
+}
+
+type Controllable struct {
+	Current bool
+}
+
+func (Controllable) Label() ComponentLabel {
+	return "Controllable"
+}
+
+func (Controllable) ID() ComponentID {
+	return CONTROLLABLE_ID
+}
+
+func (c Controllable) New() Component {
+	return c
+}
+
+type Name struct {
+	Is string
+}
+
+func (Name) Label() ComponentLabel {
+	return "Named"
+}
+
+func (Name) ID() ComponentID {
+	return NAMED_ID
+}
+
+func (c Name) New() Component {
+	return c
 }
 
 const (
-	SPACE_ID ComponentID = iota + 1
-	SCORE_ID
-	DRAWABLE_ID
+	LOCATION_ID ComponentID = iota + 1
+	COUNTERS_ID
+	IMAGE_ID
+	CONTROLLABLE_ID
+	NAMED_ID
 	C_MAX int = iota + 1
 )

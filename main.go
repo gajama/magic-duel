@@ -36,49 +36,8 @@ func init() {
 
 }
 
-type Game struct {
-	layers     [][config.WidthInTiles * config.HeightInTiles]tile
-	characters map[string]*Char
-	world      *game.World
-	wrap       bool
-}
-
-type Char struct {
-	name  string
-	game  *Game
-	img   *ebiten.Image
-	moved bool
-	score int
-}
-
-type axis bool
-type tile struct {
-	ind  int
-	lenX int
-	lenY int
-	name string
-}
-
-func (g *Game) createLayers() {
-	for n := 0; n < config.NumLayers; n++ {
-		var a [config.WidthInTiles * config.HeightInTiles]tile
-		g.layers = append(g.layers, a)
-	}
-	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
-		g.layers[0][n] = tile{
-			ind: 1,
-		}
-	}
-}
-
-func (g *Game) reset() {
-	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
-		g.layers[0][n].ind = 1
-	}
-}
-
-func (g *Game) Update() error {
-	/* king := g.characters["king"]
+/* func (g *Game) Update() error {
+	king := g.characters["king"]
 
 	x, y := king.xPos/config.TileSize, king.yPos/config.TileSize
 
@@ -108,10 +67,10 @@ func (g *Game) Update() error {
 		g.layers[0][y*config.WidthInTiles+x].ind = 0
 		king.score += 1
 	}
-	king.moved = false */
+	king.moved = false
 
 	return nil
-}
+} */
 
 /* func (c *Char) outOfBounds(a axis, move int) int {
 	pos := c.yPos
@@ -147,51 +106,18 @@ func keyDelayRepeat(k ebiten.Key) bool {
 	return false
 }
 
-func (g *Game) Draw(screen *ebiten.Image) {
-	const xNum = config.ScreenWidth / config.TileSize
-	for _, l := range g.layers {
-		for i, t := range l {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64((i%xNum)*config.TileSize), float64((i/xNum)*config.TileSize))
-
-			sx := (t.ind % config.TileXNum) * config.TileSize
-			sy := (t.ind / config.TileXNum) * config.TileSize
-			screen.DrawImage(config.TilesImage.SubImage(image.Rect(sx, sy, sx+config.TileSize, sy+config.TileSize)).(*ebiten.Image), op)
-		}
-	}
-	/*
-		king := g.characters["king"]
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(king.xPos), float64(king.yPos))
-		screen.DrawImage(king.img, op)
-
-		ebitenutil.DebugPrint(screen, fmt.Sprintf("Score: %v", king.score)) */
-}
-
-func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return config.ScreenWidth, config.ScreenHeight
-}
-
 func main() {
-	g := &Game{}
-	/* 	g.wrap = false
-	   	g.createLayers()
-	   	g.characters = make(map[string]*Char) */
-	g.world = game.MakeWorld()
+	g := game.NewGame()
 
-	g.world.AddEntity().With(
-		ecs.Space{XPos: 2, YPos: 2},
-	).With(
-		ecs.Drawable{Image: config.KingImage},
-	)
+	g.AddEntity().With(ecs.Location{}).With(ecs.Image{Image: config.KingImage}).With(ecs.Controllable{Current: true}).With(ecs.Counters{}).With(ecs.Name{Is: "The King"})
 
-	log.Print(g.world.ListEntities())
+	g.AddEntity()
 
-	g.world.Entities.Render()
+	log.Print(g.ListEntities())
 
-	/* 	ebiten.SetWindowSize(config.ScreenWidth*2, config.ScreenHeight*2)
-	   	ebiten.SetWindowTitle("Game")
-	   	if err := ebiten.RunGame(g); err != nil {
-	   		log.Fatal(err)
-	   	} */
+	ebiten.SetWindowSize(config.ScreenWidth*2, config.ScreenHeight*2)
+	ebiten.SetWindowTitle("Game")
+	if err := ebiten.RunGame(g); err != nil {
+		log.Fatal(err)
+	}
 }
