@@ -2,10 +2,7 @@ module github.com/gavmassingham/magic-duel
 
 go 1.18
 
-require (
-	github.com/hajimehoshi/ebiten/v2 v2.2.5
-	golang.org/x/exp v0.0.0-20220428152302-39d4317da171
-)
+require github.com/hajimehoshi/ebiten/v2 v2.2.5
 
 require (
 	github.com/go-gl/glfw/v3.3/glfw v0.0.0-20210727001814-0db043d8d5be // indirect

@@ -10,13 +10,25 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+var P Platform
+
+type Platform interface {
+	Render(g *Game)
+	Run(g *Game)
+	Load()
+	Label() string
+}
+
+func RegisterPlatform(p Platform) {
+	P = p
+}
+
 type Game struct {
 	worlds       []*World
 	currentWorld uint
 	nextWorldID  uint
 	wrap         bool
 	world        *World
-	Platform     ecs.Platform
 }
 
 func NewGame() *Game {
@@ -45,10 +57,6 @@ func (g *Game) makeWorld() uint {
 	return ID
 }
 
-func (g *Game) RegisterPlatform(label ecs.PlatformLabel, render func(a any) error) ecs.Platform {
-	return ecs.Platform{Label: label, Render: render}
-}
-
 func (g *Game) Update() error {
 	return nil
 }
@@ -66,7 +74,7 @@ func (g *Game) Draw(screen *ebiten.Image) {
 		}
 	}
 
-	g.Render(screen)
+	//g.Render(screen)
 
 	/*
 		king := g.characters["king"]
@@ -84,16 +92,6 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 func (g *Game) GetComponentsFor(sys *ecs.System) *ecs.System {
 	sys.Components = g.world.Entities.GetEntities(sys.IDs...)
 	return sys
-}
-
-func (g *Game) Render(screen *ebiten.Image) {
-	/* 	for _, comps := range  {
-		pos := comps[ecs.LOCATION_ID].(ecs.Location)
-		img := comps[ecs.IMAGE_ID].(ecs.Image).Image
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(pos.XPos), float64(pos.YPos))
-		screen.DrawImage(img, op)
-	} */
 }
 
 func (g *Game) AddEntity() *World {

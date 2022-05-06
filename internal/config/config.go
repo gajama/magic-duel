@@ -7,6 +7,12 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
+//go:embed resources/game-bg.png
+var B []byte
+
+//go:embed resources/king.png
+var K []byte
+
 const (
 	ScreenWidth  = 384
 	ScreenHeight = 384
