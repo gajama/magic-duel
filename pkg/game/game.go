@@ -2,20 +2,16 @@ package game
 
 import (
 	"fmt"
-	"image"
 	"strings"
 
-	"github.com/gavmassingham/magic-duel/internal/config"
 	"github.com/gavmassingham/magic-duel/pkg/ecs"
-	"github.com/hajimehoshi/ebiten/v2"
 )
 
 var P Platform
 
 type Platform interface {
-	Render(g *Game)
-	Run(g *Game)
-	Load()
+	Runner()
+	Loader()
 	Label() string
 }
 
@@ -23,87 +19,55 @@ func RegisterPlatform(p Platform) {
 	P = p
 }
 
-type Game struct {
-	worlds       []*World
-	currentWorld uint
-	nextWorldID  uint
+type World struct {
+	scenes       []*Scene
+	currentScene uint
+	nextSceneID  uint
 	wrap         bool
-	world        *World
+	scene        *Scene
 }
 
-func NewGame() *Game {
-	g := &Game{}
+func NewGame() *World {
+	g := &World{}
 	g.wrap = false
 	g.makeWorld()
-	g.world = g.worlds[g.currentWorld]
+	g.scene = g.scenes[g.currentScene]
 
 	return g
 }
 
-func (g *Game) makeWorld() uint {
+func (g *World) makeWorld() uint {
 	eMap := make(map[ecs.Entity][]ecs.Component)
 	nMap := make(map[string]ecs.Entity)
-	ID := g.nextWorldID
-	g.nextWorldID = ID + 1
+	ID := g.nextSceneID
+	g.nextSceneID = ID + 1
 
-	w := &World{
+	w := &Scene{
 		Entities:       eMap,
 		LastEntityID:   0,
 		EntitiesByName: nMap,
-		WorldID:        ID,
+		SceneID:        ID,
 	}
 	w.makeLayers()
-	g.worlds = append(g.worlds, w)
+	g.scenes = append(g.scenes, w)
 	return ID
 }
 
-func (g *Game) Update() error {
-	return nil
-}
-
-func (g *Game) Draw(screen *ebiten.Image) {
-	const xNum = config.ScreenWidth / config.TileSize
-	for _, l := range g.world.Layers {
-		for i, t := range l {
-			op := &ebiten.DrawImageOptions{}
-			op.GeoM.Translate(float64((i%xNum)*config.TileSize), float64((i/xNum)*config.TileSize))
-
-			sx := (t.ind % config.TileXNum) * config.TileSize
-			sy := (t.ind / config.TileXNum) * config.TileSize
-			screen.DrawImage(config.TilesImage.SubImage(image.Rect(sx, sy, sx+config.TileSize, sy+config.TileSize)).(*ebiten.Image), op)
-		}
-	}
-
-	//g.Render(screen)
-
-	/*
-		king := g.characters["king"]
-		op := &ebiten.DrawImageOptions{}
-		op.GeoM.Translate(float64(king.xPos), float64(king.yPos))
-		screen.DrawImage(king.img, op)
-
-		ebitenutil.DebugPrint(screen, fmt.Sprintf("Score: %v", king.score)) */
-}
-
-func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
-	return config.ScreenWidth, config.ScreenHeight
-}
-
-func (g *Game) GetComponentsFor(sys *ecs.System) *ecs.System {
-	sys.Components = g.world.Entities.GetEntities(sys.IDs...)
+func (g *World) GetComponentsFor(sys *ecs.System) *ecs.System {
+	sys.Components = g.scene.Entities.GetEntities(sys.IDs...)
 	return sys
 }
 
-func (g *Game) AddEntity() *World {
-	return g.world.addEntity()
+func (g *World) AddEntity() *Scene {
+	return g.scene.addEntity()
 }
 
-func (g *Game) ListEntities() string {
+func (g *World) ListEntities() string {
 	var out strings.Builder
 	out.WriteString("\n\n")
 	out.WriteString("Entity ID | Components\n")
 	out.WriteString("----------|------------\n")
-	for entity, components := range g.world.Entities {
+	for entity, components := range g.scene.Entities {
 		out.WriteString(fmt.Sprintf("#%08d | ", entity))
 		for _, c := range components {
 			if c != nil {

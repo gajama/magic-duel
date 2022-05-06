@@ -15,15 +15,15 @@ type tile struct {
 	name string
 }
 
-type World struct {
+type Scene struct {
 	Entities       ecs.EntitiesMap
 	LastEntityID   ecs.Entity
 	EntitiesByName ecs.NameMap
-	WorldID        uint
+	SceneID        uint
 	Layers         [][config.WidthInTiles * config.HeightInTiles]tile
 }
 
-func (w *World) makeLayers() {
+func (w *Scene) makeLayers() {
 	for n := 0; n < config.NumLayers; n++ {
 		var a [config.WidthInTiles * config.HeightInTiles]tile
 		w.Layers = append(w.Layers, a)
@@ -35,12 +35,12 @@ func (w *World) makeLayers() {
 	}
 }
 
-func (w *World) With(comp ecs.Component) *World {
+func (w *Scene) With(comp ecs.Component) *Scene {
 	w.Entities[w.LastEntityID][comp.ID()] = comp.New()
 	return w
 }
 
-func (w *World) addEntity() *World {
+func (w *Scene) addEntity() *Scene {
 	ID := ecs.Entity(w.LastEntityID + 1)
 	w.Entities[ID] = make([]ecs.Component, ecs.C_MAX)
 	w.LastEntityID = ID
@@ -52,10 +52,10 @@ type counter struct {
 	entity ecs.Entity
 	name   string
 	value  int64
-	world  *World
+	world  *Scene
 }
 
-func (w *World) addCounter(e ecs.Entity, name string, v int64) *counter {
+func (w *Scene) addCounter(e ecs.Entity, name string, v int64) *counter {
 	if entry, ok := w.Entities[e]; ok {
 		var comp ecs.Counters
 		if comp, ok := entry[ecs.COUNTERS_ID].(ecs.Counters); ok {
@@ -74,7 +74,7 @@ func (c *counter) Overwrite() *counter {
 	return c
 }
 
-func (w *World) reset() {
+func (w *Scene) reset() {
 	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
 		w.Layers[0][n].ind = 1
 	}

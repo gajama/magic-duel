@@ -6,14 +6,14 @@ import (
 	"github.com/gavmassingham/magic-duel/internal/config"
 	"github.com/gavmassingham/magic-duel/pkg/ecs"
 	"github.com/gavmassingham/magic-duel/pkg/game"
-	_ "github.com/gavmassingham/magic-duel/pkg/game/integration/ebiten"
+	_ "github.com/gavmassingham/magic-duel/pkg/game/integration/ebiten_platform"
 )
 
 var Platform game.Platform
 
 func init() {
 	Platform = game.P
-	Platform.Load()
+	Platform.Loader()
 }
 
 func main() {
@@ -28,6 +28,6 @@ func main() {
 
 	log.Println(Platform.Label())
 
-	Platform.Run(g)
+	Platform.Runner()
 
 }

@@ -1,8 +1,6 @@
 package ecs
 
-import (
-	"github.com/hajimehoshi/ebiten/v2"
-)
+import "image"
 
 type ComponentLabel string
 
@@ -64,7 +62,7 @@ func (c Counters) New() Component {
 }
 
 type Image struct {
-	Image *ebiten.Image
+	Image image.Image
 }
 
 func (Image) Label() ComponentLabel {
