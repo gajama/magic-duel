@@ -11,20 +11,18 @@ import (
 )
 
 type Game struct {
-	layers       [][config.WidthInTiles * config.HeightInTiles]tile
 	worlds       []*World
 	currentWorld uint
 	nextWorldID  uint
 	wrap         bool
 	world        *World
+	Platform     ecs.Platform
 }
 
 func NewGame() *Game {
-
 	g := &Game{}
 	g.wrap = false
 	g.makeWorld()
-	g.createLayers()
 	g.world = g.worlds[g.currentWorld]
 
 	return g
@@ -36,31 +34,19 @@ func (g *Game) makeWorld() uint {
 	ID := g.nextWorldID
 	g.nextWorldID = ID + 1
 
-	g.worlds = append(g.worlds, &World{
+	w := &World{
 		Entities:       eMap,
 		LastEntityID:   0,
 		EntitiesByName: nMap,
 		WorldID:        ID,
-	})
+	}
+	w.makeLayers()
+	g.worlds = append(g.worlds, w)
 	return ID
 }
 
-func (g *Game) createLayers() {
-	for n := 0; n < config.NumLayers; n++ {
-		var a [config.WidthInTiles * config.HeightInTiles]tile
-		g.layers = append(g.layers, a)
-	}
-	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
-		g.layers[0][n] = tile{
-			ind: 1,
-		}
-	}
-}
-
-func (g *Game) reset() {
-	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
-		g.layers[0][n].ind = 1
-	}
+func (g *Game) RegisterPlatform(label ecs.PlatformLabel, render func(a any) error) ecs.Platform {
+	return ecs.Platform{Label: label, Render: render}
 }
 
 func (g *Game) Update() error {
@@ -69,7 +55,7 @@ func (g *Game) Update() error {
 
 func (g *Game) Draw(screen *ebiten.Image) {
 	const xNum = config.ScreenWidth / config.TileSize
-	for _, l := range g.layers {
+	for _, l := range g.world.Layers {
 		for i, t := range l {
 			op := &ebiten.DrawImageOptions{}
 			op.GeoM.Translate(float64((i%xNum)*config.TileSize), float64((i/xNum)*config.TileSize))
@@ -95,14 +81,19 @@ func (g *Game) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return config.ScreenWidth, config.ScreenHeight
 }
 
+func (g *Game) GetComponentsFor(sys *ecs.System) *ecs.System {
+	sys.Components = g.world.Entities.GetEntities(sys.IDs...)
+	return sys
+}
+
 func (g *Game) Render(screen *ebiten.Image) {
-	for _, comps := range g.world.Entities.GetEntities(ecs.LOCATION_ID, ecs.IMAGE_ID) {
+	/* 	for _, comps := range  {
 		pos := comps[ecs.LOCATION_ID].(ecs.Location)
 		img := comps[ecs.IMAGE_ID].(ecs.Image).Image
 		op := &ebiten.DrawImageOptions{}
 		op.GeoM.Translate(float64(pos.XPos), float64(pos.YPos))
 		screen.DrawImage(img, op)
-	}
+	} */
 }
 
 func (g *Game) AddEntity() *World {

@@ -21,6 +21,8 @@ var b []byte
 //go:embed resources/king.png
 var k []byte
 
+var g *game.Game
+
 func init() {
 	img, _, err := image.Decode(bytes.NewReader(b))
 	if err != nil {
@@ -33,6 +35,8 @@ func init() {
 		log.Fatal(err)
 	}
 	config.KingImage = ebiten.NewImageFromImage(img)
+
+	g = game.NewGame()
 
 }
 
@@ -107,7 +111,6 @@ func keyDelayRepeat(k ebiten.Key) bool {
 }
 
 func main() {
-	g := game.NewGame()
 
 	g.AddEntity().With(ecs.Location{}).With(ecs.Image{Image: config.KingImage}).With(ecs.Controllable{Current: true}).With(ecs.Counters{}).With(ecs.Name{Is: "The King"})
 

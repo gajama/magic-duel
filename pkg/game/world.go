@@ -3,6 +3,7 @@ package game
 import (
 	"fmt"
 
+	"github.com/gavmassingham/magic-duel/internal/config"
 	"github.com/gavmassingham/magic-duel/pkg/ecs"
 )
 
@@ -19,6 +20,19 @@ type World struct {
 	LastEntityID   ecs.Entity
 	EntitiesByName ecs.NameMap
 	WorldID        uint
+	Layers         [][config.WidthInTiles * config.HeightInTiles]tile
+}
+
+func (w *World) makeLayers() {
+	for n := 0; n < config.NumLayers; n++ {
+		var a [config.WidthInTiles * config.HeightInTiles]tile
+		w.Layers = append(w.Layers, a)
+	}
+	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
+		w.Layers[0][n] = tile{
+			ind: 1,
+		}
+	}
 }
 
 func (w *World) With(comp ecs.Component) *World {
@@ -58,4 +72,10 @@ func (w *World) addCounter(e ecs.Entity, name string, v int64) *counter {
 func (c *counter) Overwrite() *counter {
 	c.world.Entities[c.entity][ecs.COUNTERS_ID].(ecs.Counters).Counters[c.name] = c.value
 	return c
+}
+
+func (w *World) reset() {
+	for n := 0; n < config.WidthInTiles*config.HeightInTiles; n++ {
+		w.Layers[0][n].ind = 1
+	}
 }

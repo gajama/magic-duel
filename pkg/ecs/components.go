@@ -4,8 +4,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type Entity uint64
-
 type ComponentLabel string
 
 type ComponentID uint
